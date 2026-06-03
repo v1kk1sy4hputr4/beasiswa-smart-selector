@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Beasiswa Pro - Update 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary-color: #0d6efd; --bg-light: #f8f9fa; }
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; }
+        .nav-pills { overflow-x: auto; display: flex; flex-wrap: nowrap; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .nav-link { white-space: nowrap; font-size: 13px; padding: 8px 16px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+        .stat-card { transition: all 0.2s; cursor: pointer; border: 2px solid transparent; }
+        .stat-card.active-filter { border-color: #ffc107 !important; background-color: #fff3cd !important; transform: scale(1.02); }
+        .table-responsive { border-radius: 8px; background: white; }
+        .table thead th { background-color: #f8f9fa; white-space: nowrap; font-size: 12px; cursor: pointer; user-select: none; }
+        .input-box { border-left: 4px solid var(--primary-color); background: #fff; padding: 10px; border-radius: 8px; }
+        .high-score { color: #198754; font-weight: bold; background-color: #eafff5; border-radius: 4px; padding: 2px 6px; }
+        .small-text { font-size: 11px; color: #6c757d; }
+        .btn-xs { padding: 2px 6px; font-size: 11px; }
+        
+        #card-adab .small-text, #card-adab h4, 
+        #card-tahfidz .small-text, #card-tahfidz h4 { color: #000 !important; }
+        .th-avg { color: #000 !important; background-color: #ffc107 !important; }
+        .sort-icon { font-size: 10px; margin-left: 4px; color: #adb5bd; }
+        .sort-active { color: #000 !important; }
+    </style>
+</head>
+<body>
+<div class="modal fade" id="modalLogin" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white py-2">
+                <h6 class="modal-title">Akses Sistem</h6>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-shield-lock mb-2" style="font-size: 2rem; color: #0d6efd;"></i>
+                <p class="small text-muted">Masukkan PIN untuk melanjutkan</p>
+                <input type="password" id="inputPin" class="form-control text-center mb-3" placeholder="****" maxlength="4" style="font-size: 20px; letter-spacing: 10px;">
+                <button onclick="prosesLogin()" class="btn btn-primary w-100">Masuk</button>
+                <div id="loginError" class="text-danger small mt-2" style="display:none;">PIN Salah!</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white border-bottom p-2 mb-3 shadow-sm d-flex justify-content-between align-items-center" id="headerAuth" style="display:none;">
+    <span class="small fw-bold ms-3" id="userRoleStatus"></span>
+    <button id="btnLogOut" class="btn btn-xs btn-outline-danger me-3" onclick="logout()">Keluar</button>
+</div>
+
+<div class="container-fluid py-3">
+    <div class="text-center mb-3">
+        <h4 class="fw-bold text-primary mb-1">Manajemen Beasiswa</h4>
+        <p class="small text-muted">Fitur Import & Export Maksimal</p>
+    </div>
+
+    <ul class="nav nav-pills gap-2 mb-4" id="mainTab">
+        <li class="nav-item"><button class="nav-link rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-daftar">Data Santri</button></li>
+        <li class="nav-item"><button class="nav-link active rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-monitoring">Monitoring</button></li>
+        <li class="nav-item"><button class="nav-link rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-adab">Input Adab</button></li>
+        <li class="nav-item"><button class="nav-link rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-tahfidz">Input Tahf</button></li>
+        <li class="nav-item"><button class="nav-link rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-rapot">Input Rapot</button></li>
+        <li class="nav-item"><button class="nav-link rounded-pill shadow-sm" data-bs-toggle="tab" data-bs-target="#tab-kehadiran">Input Kehadiran</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-monitoring">
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3">
+                    <div id="card-global" class="card p-2 text-center stat-card bg-warning" onclick="setFilter('global')">
+                        <div class="small-text fw-bold">LAYAK</div><h4 class="mb-0 fw-bold" id="countGlobal">0</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div id="card-adab" class="card p-2 text-center stat-card bg-success" onclick="setFilter('adab')">
+                        <div class="small-text fw-bold">ADAB</div><h4 class="mb-0 fw-bold" id="countAdab">0</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div id="card-tahfidz" class="card p-2 text-center stat-card bg-primary" onclick="setFilter('tahfidz')">
+                        <div class="small-text fw-bold">TAHFIDZ</div><h4 class="mb-0 fw-bold" id="countTahfidz">0</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div id="card-rapot" class="card p-2 text-center stat-card bg-info" onclick="setFilter('rapot')">
+                        <div class="small-text fw-bold">RAPOT</div><h4 class="mb-0 fw-bold" id="countRapot">0</h4>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div id="card-kehadiran" class="card p-2 text-center stat-card bg-secondary text-white" onclick="setFilter('kehadiran')">
+                        <div class="small-text fw-bold text-white">KEHADIRAN</div><h4 class="mb-0 fw-bold" id="countKehadiran">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-4">
+<div class="card p-3">
+    <h6 class="fw-bold"><i class="bi bi-sliders"></i> Pengaturan Data</h6>
+    <div class="mb-3">
+        <label class="small-text">Filter Kelas</label>
+        <select id="filterKelasMonitoring" class="form-select form-select-sm"></select>
+    </div>
+    
+    <label class="fw-bold small-text mb-1">Ambang Batas Kelulusan (Kriteria)</label>
+    <div class="row g-2 mb-3 text-center">
+        <div class="col-4"><label class="small-text">Adab</label><input type="number" id="minAdab" class="form-control form-control-sm" value="80"></div>
+        <div class="col-4"><label class="small-text">Tahf</label><input type="number" id="minTahfidz" class="form-control form-control-sm" value="75"></div>
+        <div class="col-4"><label class="small-text">Rapot</label><input type="number" id="minRapot" class="form-control form-control-sm" value="85"></div>
+        <div class="col-3"><label class="small-text">Absen</label><input type="number" id="minKehadiran" class="form-control form-control-sm" value="90"></div>
+    </div>
+
+    <label class="fw-bold small-text mb-1">Bobot Rata-rata (%)</label>
+    <div class="row g-2 mb-3 text-center">
+        <div class="col-4"><label class="small-text">Adab%</label><input type="number" id="weightAdab" class="form-control form-control-sm" value="20"></div>
+        <div class="col-4"><label class="small-text">Tahf%</label><input type="number" id="weightTahfidz" class="form-control form-control-sm" value="20"></div>
+        <div class="col-4"><label class="small-text">Rapot%</label><input type="number" id="weightRapot" class="form-control form-control-sm" value="40"></div>
+        <div class="col-3"><label class="small-text">Absen%</label><input type="number" id="weightKehadiran" class="form-control form-control-sm" value="20"></div>
+    </div>
+    <div id="weightAlert" class="small-text text-danger mb-2" style="display:none;">Total bobot harus 100%!</div>
+
+    <button class="btn btn-dark btn-sm w-100 mb-2" onclick="updateKriteria()">Simpan Pengaturan</button>
+    <hr>
+    <button class="btn btn-success btn-sm w-100 mb-2" onclick="exportDataExcel()"><i class="bi bi-file-excel"></i> Export Excel (Sesuai Filter)</button>
+    <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="triggerImportNilai()"><i class="bi bi-upload"></i> Import Nilai Excel</button>
+    <button class="btn btn-outline-danger btn-sm w-100" onclick="smartResetNilai()"><i class="bi bi-trash"></i> Reset Nilai Tampil</button>
+    <input type="file" id="importFileNilai" hidden accept=".xlsx, .xls" onchange="handleFileSelect(event, 'nilai')">
+</div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0" id="filterTitle">Laporan (Semua)</h6>
+                            <button class="btn btn-xs btn-danger" id="btnResetFilter" style="display:none;" onclick="setFilter('all')">Reset Kategori</button>
+                        </div>
+                        <div class="input-group input-group-sm mb-3">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input type="text" id="searchSiswaMonitoring" class="form-control" placeholder="Cari nama..." onkeyup="renderMonitoring()">
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm border">
+                                <thead class="table-light text-center">
+                                    <tr id="headMonitoring">
+                                        <th class="text-start" onclick="setSort('nama')">Nama <i class="bi bi-arrow-down-up sort-icon" id="sort-nama"></i></th>
+                                        <th onclick="setSort('adab')">Adab <i class="bi bi-arrow-down-up sort-icon" id="sort-adab"></i></th>
+                                        <th onclick="setSort('tahfidz')">Tahf <i class="bi bi-arrow-down-up sort-icon" id="sort-tahfidz"></i></th>
+                                        <th onclick="setSort('rapot')">Rapot <i class="bi bi-arrow-down-up sort-icon" id="sort-rapot"></i></th>
+                                        <th onclick="setSort('kehadiran')">Absen <i class="bi bi-arrow-down-up sort-icon" id="sort-kehadiran"></i></th>
+                                        <th onclick="setSort('avg')" class="th-avg">Rata² <i class="bi bi-arrow-down-up sort-icon" id="sort-avg"></i></th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="listSiswaMonitoring" class="text-center align-middle"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-daftar">
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="card p-3">
+                        <h6 class="fw-bold">Tambah/Import Santri</h6>
+                        <form id="formSiswa" class="mb-3">
+                            <input type="text" id="nama" class="form-control mb-2" placeholder="Nama Lengkap" required>
+                            <input type="text" id="nisn" class="form-control mb-2" placeholder="NISN" required>
+                            <input type="text" id="kelas" class="form-control mb-2" placeholder="Kelas (9A/9B)" required>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Simpan Manual</button>
+                        </form>
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="document.getElementById('importFileSiswa').click()"><i class="bi bi-file-earmark-excel"></i> Import Santri Baru</button>
+                        <input type="file" id="importFileSiswa" hidden accept=".xlsx, .xls" onchange="handleFileSelect(event, 'siswa')">
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="card p-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <h6 class="fw-bold">Database Santri</h6>
+                            <button class="btn btn-danger btn-sm" id="btnHapusMassal" onclick="hapusMassalSiswa()" style="display:none;"><i class="bi bi-trash"></i> Hapus Terpilih (<span id="countTerpilih">0</span>)</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                                        <th onclick="setSortDaftar('nama')">Nama <i class="bi bi-arrow-down-up sort-icon" id="dsort-nama"></i></th>
+                                        <th onclick="setSortDaftar('kelas')">Kelas <i class="bi bi-arrow-down-up sort-icon" id="dsort-kelas"></i></th>
+                                        <th onclick="setSortDaftar('nisn')">NISN <i class="bi bi-arrow-down-up sort-icon" id="dsort-nisn"></i></th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="listSiswaInduk"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-adab">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <select class="form-select w-auto filter-kelas-input" data-type="adab" onchange="syncInputTabs()"></select>
+                    <button class="btn btn-primary btn-sm" onclick="simpanMasal('adab')">Simpan Semua</button>
+                </div>
+                <div id="container-adab" class="row"></div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="tab-tahfidz">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <select class="form-select w-auto filter-kelas-input" data-type="tahfidz" onchange="syncInputTabs()"></select>
+                    <button class="btn btn-primary btn-sm" onclick="simpanMasal('tahfidz')">Simpan Semua</button>
+                </div>
+                <div id="container-tahfidz" class="row"></div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="tab-rapot">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <select class="form-select w-auto filter-kelas-input" data-type="rapot" onchange="syncInputTabs()"></select>
+                    <button class="btn btn-primary btn-sm" onclick="simpanMasal('rapot')">Simpan Semua</button>
+                </div>
+                <div id="container-rapot" class="row"></div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="tab-kehadiran">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <select class="form-select w-auto filter-kelas-input" data-type="kehadiran" onchange="syncInputTabs(this.value)"></select>
+                    <button class="btn btn-primary btn-sm" onclick="simpanMasal('kehadiran')">Simpan Semua</button>
+                </div>
+                <div id="container-kehadiran" class="row"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalSheet" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header py-2"><h6>Pilih Sheet Excel</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="sheetButtons"></div></div></div></div>
+
+<div class="modal fade" id="modalEdit" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Edit Data Santri</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="editId"><div class="mb-2"><label>Nama</label><input type="text" id="editNama" class="form-control"></div><div class="mb-2"><label>NISN (Harus Unik)</label><input type="text" id="editNisn" class="form-control"></div><div class="mb-2"><label>Kelas</label><input type="text" id="editKelas" class="form-control"></div></div><div class="modal-footer"><button onclick="simpanEditSantri()" class="btn btn-primary w-100">Simpan Perubahan</button></div></div></div></div>
+
+<div class="modal fade" id="modalEditNilai" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6>Edit Nilai</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editNilaiId">
+                <div class="mb-2">
+                    <label class="small-text">Adab</label>
+                    <input type="number" id="valAdab" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="small-text">Tahf</label>
+                    <input type="number" id="valTahfidz" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="small-text">Rapot</label>
+                    <input type="number" id="valRapot" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="small-text">Kehadiran (Absen)</label>
+                    <input type="number" id="valKehadiran" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="prosesUpdateNilai()" class="btn btn-success w-100 btn-sm">Update Nilai</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCLCNnUf2_CoY2lx1K4X7i09CcO68rYzmc",
+        authDomain: "beasiswa-smart-selector.firebaseapp.com",
+        projectId: "beasiswa-smart-selector",
+        storageBucket: "beasiswa-smart-selector.firebasestorage.app",
+        messagingSenderId: "573706065710",
+        appId: "1:573706065710:web:9e979003e6c5489fca0cbf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Konfigurasi PIN (Ganti sesuai keinginan)
+const PIN_ADMIN = "555";
+const PIN_USER = "123";
+
+let currentRole = null; // 'admin' atau 'user'
+const loginModal = new bootstrap.Modal(document.getElementById('modalLogin'));
+
+// Jalankan saat halaman dibuka
+window.addEventListener('DOMContentLoaded', () => {
+    loginModal.show();
+});
+
+window.prosesLogin = () => {
+    const pin = document.getElementById('inputPin').value;
+    const errorMsg = document.getElementById('loginError');
+    
+    if (pin === PIN_ADMIN) {
+        currentRole = 'admin';
+        aksesDiterima();
+    } else if (pin === PIN_USER) {
+        currentRole = 'user';
+        aksesDiterima();
+    } else {
+        errorMsg.style.display = 'block';
+        document.getElementById('inputPin').value = '';
+    }
+};
+
+function aksesDiterima() {
+    loginModal.hide();
+    // Gunakan d-flex (class Bootstrap) atau ganti style langsung tanpa perlu paksa !important
+    const header = document.getElementById('headerAuth');
+    header.style.display = 'flex'; 
+    
+    document.getElementById('userRoleStatus').innerText = "Role: " + currentRole.toUpperCase();
+    aturHakAkses();
+}
+
+function aturHakAkses() {
+    const tabMonitoring = document.querySelector('[data-bs-target="#tab-monitoring"]');
+    const tabDaftar = document.querySelector('[data-bs-target="#tab-daftar"]');
+    const inputControls = document.querySelectorAll('.btn-danger, .btn-primary:not([onclick*="simpanMasal"]), #formSiswa, .btn-outline-primary, .btn-outline-danger:not(#btnLogOut)');
+
+    if (currentRole === 'user') {
+        // Sembunyikan tab yang tidak boleh diakses user
+        tabMonitoring.style.display = 'none';
+        tabDaftar.style.display = 'none';
+        
+        // Paksa buka tab "Input Adab" karena tab Monitoring (Active) hilang
+        const firstInputTab = new bootstrap.Tab(document.querySelector('[data-bs-target="#tab-adab"]'));
+        firstInputTab.show();
+
+        // Nonaktifkan tombol hapus/edit di tab input
+        inputControls.forEach(el => el.style.display = 'none');
+    } else {
+        // Admin bisa lihat semua
+        tabMonitoring.style.display = 'block';
+        tabDaftar.style.display = 'block';
+        inputControls.forEach(el => el.style.display = 'inline-block');
+    }
+}
+
+window.logout = () => {
+    location.reload(); // Cara termudah untuk reset session
+};
+
+
+    const siswaCol = collection(db, "siswa");
+
+    let dataSiswa = [];
+    let kriteria = { adab: 80, tahfidz: 75, rapot: 85, kehadiran: 90 };
+    let bobot = { adab: 25, tahfidz: 25, rapot: 30, kehadiran: 20 }; // Total pas 100%
+    let currentFilter = 'all'; 
+    let filterKelas = 'all';
+    let sortConfig = { key: 'avg', direction: 'desc' };
+    let sortDaftarConfig = { key: 'nama', direction: 'asc' };
+    let tempWorkbook = null;
+    let currentImportType = ''; 
+
+    const editModal = new bootstrap.Modal(document.getElementById('modalEdit'));
+    const nilaiModal = new bootstrap.Modal(document.getElementById('modalEditNilai'));
+    const sheetModal = new bootstrap.Modal(document.getElementById('modalSheet'));
+
+    onSnapshot(query(siswaCol, orderBy("timestamp", "desc")), (snap) => {
+        dataSiswa = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+        updateAllUI();
+    });
+
+    function updateAllUI() {
+        renderDaftarInduk();
+        renderMonitoring();
+        updateFilterKelasDropdowns();
+        syncInputTabs();
+    }
+
+
+    // --- CORE RENDERING ---
+window.renderMonitoring = () => {
+    const tbody = document.getElementById('listSiswaMonitoring');
+    const searchTerm = document.getElementById('searchSiswaMonitoring').value.toLowerCase();
+    
+    // 1. Pemrosesan Data Awal (Filter Kelas & Pencarian)
+    let processedData = dataSiswa.map(item => {
+        const s = item.data;
+        const adab = Number(s.adab || 0);
+        const tahfidz = Number(s.tahfidz || 0);
+        const rapot = Number(s.rapot || 0);
+        const kehadiran = Number(s.kehadiran || 0); // <-- Ditambahkan: Mengambil data kehadiran
+        
+        // Rumus Rata-rata diupdate dengan menyertakan bobot kehadiran
+        const avg = ((adab * bobot.adab) + (tahfidz * bobot.tahfidz) + (rapot * bobot.rapot) + (kehadiran * bobot.kehadiran)) / 100;
+        
+        const lA = adab >= kriteria.adab;
+        const lT = tahfidz >= kriteria.tahfidz;
+        const lR = rapot >= kriteria.rapot;
+        const lK = kehadiran >= kriteria.kehadiran; // <-- Ditambahkan: Cek kriteria lulus kehadiran
+        
+        // Status LAYAK (Global) mewajibkan lolos semua kriteria termasuk kehadiran
+        const lG = lA && lT && lR && lK; 
+
+        return { ...item, avg, lA, lT, lR, lK, lG };
+    }).filter(item => {
+        const matchKelas = filterKelas === 'all' || item.data.kelas === filterKelas;
+        const matchSearch = item.data.nama.toLowerCase().includes(searchTerm);
+        return matchKelas && matchSearch;
+    });
+
+    // 2. Filter Tampilan Tabel Berdasarkan Kategori yang Diklik
+    let displayData = processedData.filter(item => {
+        if (currentFilter === 'global') return item.lG;
+        if (currentFilter === 'adab') return item.lA && !item.lG; 
+        if (currentFilter === 'tahfidz') return item.lT && !item.lG; 
+        if (currentFilter === 'rapot') return item.lR && !item.lG; 
+        if (currentFilter === 'kehadiran') return item.lK && !item.lG; // <-- Ditambahkan: Filter khusus kategori kehadiran
+        return true; 
+    });
+
+    // 3. HITUNG STATISTIK BERDASARKAN DISPLAY DATA
+    let stats = { global: 0, adab: 0, tahfidz: 0, rapot: 0, kehadiran: 0 }; // <-- Ditambahkan: stat kehadiran
+    
+    if (currentFilter === 'all') {
+        processedData.forEach(item => {
+            if (item.lG) stats.global++;
+            if (item.lA && !item.lG) stats.adab++;
+            if (item.lT && !item.lG) stats.tahfidz++;
+            if (item.lR && !item.lG) stats.rapot++;
+            if (item.lK && !item.lG) stats.kehadiran++; // <-- Ditambahkan
+        });
+    } else {
+        stats[currentFilter] = displayData.length;
+        
+        processedData.forEach(item => {
+            if (currentFilter !== 'global' && item.lG) stats.global++;
+            if (currentFilter !== 'adab' && (item.lA && !item.lG)) stats.adab++;
+            if (currentFilter !== 'tahfidz' && (item.lT && !item.lG)) stats.tahfidz++;
+            if (currentFilter !== 'rapot' && (item.lR && !item.lG)) stats.rapot++;
+            if (currentFilter !== 'kehadiran' && (item.lK && !item.lG)) stats.kehadiran++; // <-- Ditambahkan
+        });
+    }
+
+    // Update UI Dashboard
+    document.getElementById('countGlobal').innerText = stats.global;
+    document.getElementById('countAdab').innerText = stats.adab;
+    document.getElementById('countTahfidz').innerText = stats.tahfidz;
+    document.getElementById('countRapot').innerText = stats.rapot;
+    
+    // Antisipasi error jika elemen 'countKehadiran' belum dibuat di HTML
+    const countKehadiranEl = document.getElementById('countKehadiran');
+    if (countKehadiranEl) countKehadiranEl.innerText = stats.kehadiran;
+
+    // 4. Pengurutan (Sorting)
+    displayData.sort((a, b) => {
+        let valA = sortConfig.key === 'avg' ? a.avg : (sortConfig.key === 'nama' ? a.data.nama.toLowerCase() : Number(a.data[sortConfig.key] || 0));
+        let valB = sortConfig.key === 'avg' ? b.avg : (sortConfig.key === 'nama' ? b.data.nama.toLowerCase() : Number(b.data[sortConfig.key] || 0));
+        
+        if (sortConfig.key === 'nama') {
+            return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return sortConfig.direction === 'desc' ? valB - valA : valA - valB;
+    });
+
+    updateSortIcons('sort-', sortConfig.key, sortConfig.direction);
+
+    // 5. Render ke Tabel (Serta menambahkan kolom Absen)
+    tbody.innerHTML = displayData.map(item => `
+        <tr>
+            <td class="text-start"><b>${item.data.nama}</b><br><span class="small-text">${item.data.kelas}</span></td>
+            <td><span class="${item.lA ? 'high-score' : ''}">${item.data.adab || 0}</span></td>
+            <td><span class="${item.lT ? 'high-score' : ''}">${item.data.tahfidz || 0}</span></td>
+            <td><span class="${item.lR ? 'high-score' : ''}">${item.data.rapot || 0}</span></td>
+            <td><span class="${item.lK ? 'high-score' : ''}">${item.data.kehadiran || 0}</span></td> <td class="bg-light fw-bold" style="color:#000;">${item.avg.toFixed(2)}</td>
+            <td>${item.lG ? '<span class="badge bg-warning text-dark">LAYAK</span>' : '<span class="text-muted small">TIDAK</span>'}</td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-xs btn-outline-primary" onclick="bukaEditNilai('${item.id}')"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-xs btn-outline-danger" onclick="hapusSiswa('${item.id}')"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    window.currentFilteredData = displayData;
+};
+
+
+    window.renderDaftarInduk = () => {
+        const tbody = document.getElementById('listSiswaInduk');
+        let dataSorted = [...dataSiswa];
+        dataSorted.sort((a, b) => {
+            let valA = (a.data[sortDaftarConfig.key] || "").toString().toLowerCase();
+            let valB = (b.data[sortDaftarConfig.key] || "").toString().toLowerCase();
+            return sortDaftarConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+        updateSortIcons('dsort-', sortDaftarConfig.key, sortDaftarConfig.direction);
+
+        tbody.innerHTML = dataSorted.map(item => `
+            <tr>
+                <td><input type="checkbox" class="chk-siswa" value="${item.id}" onclick="updateSelectedCount()"></td>
+                <td>${item.data.nama}</td>
+                <td>${item.data.kelas}</td>
+                <td>${item.data.nisn}</td>
+                <td>
+                    <button class="btn btn-xs btn-info" onclick="bukaEditModal('${item.id}')"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-xs btn-danger" onclick="hapusSiswa('${item.id}')"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    };
+
+    // --- LOGIKA EDIT & UNIK NISN ---
+
+    window.bukaEditModal = (id) => {
+        const s = dataSiswa.find(x => x.id === id).data;
+        document.getElementById('editId').value = id;
+        document.getElementById('editNama').value = s.nama;
+        document.getElementById('editNisn').value = s.nisn;
+        document.getElementById('editKelas').value = s.kelas;
+        editModal.show();
+    };
+
+    window.simpanEditSantri = async () => {
+        const id = document.getElementById('editId').value;
+        const newNisn = document.getElementById('editNisn').value.trim();
+        const newNama = document.getElementById('editNama').value.trim();
+        const newKelas = document.getElementById('editKelas').value.trim();
+
+        if(!newNisn || !newNama || !newKelas) return alert("Semua kolom harus diisi!");
+
+        // Validasi NISN Unik: Cek apakah NISN sudah dipakai oleh santri lain (id berbeda)
+        const isDuplicate = dataSiswa.some(s => s.data.nisn === newNisn && s.id !== id);
+        
+        if(isDuplicate) {
+            alert("Gagal Update: NISN " + newNisn + " sudah terdaftar pada santri lain!");
+            return;
+        }
+
+        try {
+            await updateDoc(doc(db, "siswa", id), {
+                nama: newNama,
+                nisn: newNisn,
+                kelas: newKelas
+            });
+            editModal.hide();
+            alert("Data santri berhasil diperbarui.");
+        } catch (e) {
+            console.error(e);
+            alert("Gagal memperbarui data.");
+        }
+    };
+
+    document.getElementById('formSiswa').onsubmit = async (e) => {
+        e.preventDefault();
+        const n = document.getElementById('nama').value.trim();
+        const ni = document.getElementById('nisn').value.trim();
+        const k = document.getElementById('kelas').value.trim();
+
+        // Validasi NISN Unik saat tambah manual
+        if(dataSiswa.some(s => s.data.nisn === ni)) {
+            alert("Gagal: NISN sudah ada dalam database!");
+            return;
+        }
+
+        await addDoc(siswaCol, {
+            nama: n, nisn: ni, kelas: k,
+            adab: 0, tahfidz: 0, rapot: 0,
+            timestamp: Date.now()
+        });
+        e.target.reset();
+        alert("Santri berhasil ditambahkan.");
+    };
+
+    // --- FITUR RESET NILAI TAMPIL ---
+
+    window.smartResetNilai = async () => {
+        const target = window.currentFilteredData || [];
+        if(target.length === 0) return alert("Tidak ada data yang tampil untuk direset!");
+        if(!confirm(`Reset nilai Adab, Tahfidz, dan Rapot untuk ${target.length} santri yang tampil?`)) return;
+
+        const batch = writeBatch(db);
+        target.forEach(item => {
+            batch.update(doc(db, "siswa", item.id), { adab: 0, tahfidz: 0, rapot: 0 });
+        });
+        await batch.commit();
+        alert("Nilai pada tabel monitoring berhasil direset ke 0.");
+    };
+
+    // --- FUNGSI PENDUKUNG LAINNYA ---
+
+    window.setSort = (k) => {
+        sortConfig.direction = (sortConfig.key === k && sortConfig.direction === 'desc') ? 'asc' : 'desc';
+        sortConfig.key = k;
+        renderMonitoring();
+    };
+
+    window.setSortDaftar = (k) => {
+        sortDaftarConfig.direction = (sortDaftarConfig.key === k && sortDaftarConfig.direction === 'asc') ? 'desc' : 'asc';
+        sortDaftarConfig.key = k;
+        renderDaftarInduk();
+    };
+
+    function updateSortIcons(prefix, activeKey, direction) {
+        document.querySelectorAll('.sort-icon').forEach(icon => {
+            if(icon.id.startsWith(prefix)) {
+                icon.className = "bi bi-arrow-down-up sort-icon";
+                if(icon.id === prefix + activeKey) {
+                    icon.className = direction === 'asc' ? "bi bi-arrow-up sort-icon sort-active" : "bi bi-arrow-down sort-icon sort-active";
+                }
+            }
+        });
+    }
+
+    window.setFilter = (f) => {
+        currentFilter = f;
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-filter'));
+        if(f !== 'all') {
+            const card = document.getElementById(`card-${f}`);
+            if(card) card.classList.add('active-filter');
+            document.getElementById('btnResetFilter').style.display = 'inline-block';
+            document.getElementById('filterTitle').innerText = "Filter: " + f.toUpperCase();
+        } else {
+            document.getElementById('btnResetFilter').style.display = 'none';
+            document.getElementById('filterTitle').innerText = "Laporan (Semua)";
+        }
+        renderMonitoring();
+    };
+
+window.updateKriteria = () => {
+    // 1. Ambil nilai kriteria (Termasuk Kehadiran)
+    kriteria.adab = Number(document.getElementById('minAdab').value);
+    kriteria.tahfidz = Number(document.getElementById('minTahfidz').value);
+    kriteria.rapot = Number(document.getElementById('minRapot').value);
+    kriteria.kehadiran = Number(document.getElementById('minKehadiran').value); // <-- Ditambahkan
+
+    // 2. Ambil nilai bobot (Termasuk Kehadiran)
+    const wA = Number(document.getElementById('weightAdab').value);
+    const wT = Number(document.getElementById('weightTahfidz').value);
+    const wR = Number(document.getElementById('weightRapot').value);
+    const wK = Number(document.getElementById('weightKehadiran').value); // <-- Ditambahkan
+
+    // 3. Validasi total bobot diupdate dengan menyertakan wK (Bobot Kehadiran)
+    const totalBobot = wA + wT + wR + wK; 
+    
+    if (totalBobot !== 100) {
+        document.getElementById('weightAlert').style.display = 'block';
+        alert("Peringatan: Total bobot persentase adalah " + totalBobot + "%. Disarankan berjumlah 100% agar nilai akurat.");
+    } else {
+        document.getElementById('weightAlert').style.display = 'none';
+    }
+
+    // 4. Simpan ke dalam variabel global objek bobot
+    bobot.adab = wA;
+    bobot.tahfidz = wT;
+    bobot.rapot = wR;
+    bobot.kehadiran = wK; // <-- Ditambahkan
+
+    // 5. Refresh tampilan tabel data
+    renderMonitoring();
+    alert("Pengaturan berhasil disimpan!");
+};
+
+// --- INISIALISASI AWAL (SAAT HALAMAN DI-LOAD) ---
+// Letakkan baris ini di bagian bawah script luar fungsi agar saat halaman web dibuka pertama kali, 
+// kotak input "Absen" dan "Absen%" langsung terisi otomatis sesuai nilai default dari variabel global.
+if (document.getElementById('minKehadiran')) {
+    document.getElementById('minKehadiran').value = kriteria.kehadiran;
+}
+if (document.getElementById('weightKehadiran')) {
+    document.getElementById('weightKehadiran').value = bobot.kehadiran;
+}
+
+
+
+    window.updateFilterKelasDropdowns = () => {
+        const list = [...new Set(dataSiswa.map(s => s.data.kelas))].sort();
+        const fMon = document.getElementById('filterKelasMonitoring');
+        const oldVal = fMon.value;
+        fMon.innerHTML = '<option value="all">Semua Kelas</option>' + list.map(k => `<option value="${k}" ${k===oldVal?'selected':''}>${k}</option>`).join('');
+        document.querySelectorAll('.filter-kelas-input').forEach(sel => {
+            const v = sel.value;
+            sel.innerHTML = '<option value="">-- Pilih Kelas --</option>' + list.map(k => `<option value="${k}" ${k===v?'selected':''}>${k}</option>`).join('');
+        });
+    };
+
+    document.getElementById('filterKelasMonitoring').addEventListener('change', (e) => { 
+        filterKelas = e.target.value; 
+        renderMonitoring(); 
+    });
+
+    window.syncInputTabs = () => {
+        document.querySelectorAll('.filter-kelas-input').forEach(sel => {
+            const type = sel.dataset.type;
+            const kelas = sel.value;
+            const container = document.getElementById(`container-${type}`);
+            if(!kelas) { container.innerHTML = '<p class="text-center text-muted small mt-3">Pilih kelas untuk menginput nilai...</p>'; return; }
+            const filtered = dataSiswa.filter(s => s.data.kelas === kelas);
+            container.innerHTML = filtered.map(s => `
+                <div class="col-md-6 col-lg-4 mb-2">
+                    <div class="input-box shadow-sm">
+                        <div class="fw-bold small mb-1">${s.data.nama}</div>
+                        <input type="number" class="form-control form-control-sm masal-${type}" data-id="${s.id}" value="${s.data[type] || ''}">
+                    </div>
+                </div>
+            `).join('');
+        });
+    };
+
+    window.simpanMasal = async (type) => {
+        const batch = writeBatch(db);
+        document.querySelectorAll(`.masal-${type}`).forEach(i => batch.update(doc(db, "siswa", i.dataset.id), { [type]: Number(i.value || 0) }));
+        await batch.commit();
+        alert("Nilai berhasil disimpan.");
+    };
+
+window.triggerImportNilai = () => document.getElementById('importFileNilai').click();
+
+window.handleFileSelect = (e, type) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    currentImportType = type;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const data = new Uint8Array(ev.target.result);
+        tempWorkbook = XLSX.read(data, {type: 'array'});
+        const btnContainer = document.getElementById('sheetButtons');
+        btnContainer.innerHTML = tempWorkbook.SheetNames.map(name => `
+            <button class="btn btn-outline-primary w-100 mb-2 btn-sm" onclick="processImport('${name}')">${name}</button>
+        `).join('');
+        sheetModal.show();
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = ''; 
+};
+
+window.processImport = async (sheetName) => {
+    sheetModal.hide();
+    const json = XLSX.utils.sheet_to_json(tempWorkbook.Sheets[sheetName]);
+    const batch = writeBatch(db);
+    let count = 0;
+    
+    json.forEach(row => {
+        // Fungsi helper untuk mendeteksi variasi nama header secara dinamis
+        const getV = (keys) => {
+            const k = Object.keys(row).find(x => keys.includes(x.toLowerCase().trim()));
+            return k ? row[k] : null;
+        };
+        
+        const nisn = String(getV(['nisn', 'no induk', 'induk', 'id']) || "").trim();
+        if(!nisn) return;
+        
+        // Memastikan tipe data NISN dibandingkan sebagai string yang bersih
+        const existing = dataSiswa.find(s => String(s.data.nisn).trim() === nisn);
+        
+        if(currentImportType === 'nilai' && existing) {
+            batch.update(doc(db, "siswa", existing.id), {
+                adab: Number(getV(['adab', 'nilai adab', 'etika']) || 0),
+                tahfidz: Number(getV(['tahfidz', 'tahf', 'tahfiz', 'hafalan']) || 0),
+                rapot: Number(getV(['rapot', 'rapor', 'nilai rapot', 'akademik']) || 0),
+                kehadiran: Number(getV(['kehadiran', 'absen', 'absensi', 'kehadiran (%)']) || 0)
+            });
+            count++;
+        } else if(currentImportType === 'siswa' && !existing) {
+            const nama = getV(['nama', 'nama santri', 'nama lengkap']);
+            if(nama) {
+                const newDoc = doc(siswaCol);
+                batch.set(newDoc, {
+                    nama: String(nama), 
+                    nisn: nisn,
+                    kelas: String(getV(['kelas', 'class', 'rombel']) || "-"),
+                    adab: 0, 
+                    tahfidz: 0, 
+                    rapot: 0, 
+                    kehadiran: 0,
+                    timestamp: Date.now()
+                });
+                count++;
+            }
+        }
+    });
+    
+    if(count > 0) {
+        await batch.commit();
+        alert(`Berhasil memproses ${count} data.`);
+    } else {
+        alert("Tidak ada data baru atau data cocok yang berhasil diproses.");
+    }
+};
+
+
+window.exportDataExcel = () => {
+    const exportList = window.currentFilteredData || [];
+    if(exportList.length === 0) return alert("Tidak ada data untuk diekspor!");
+    const data = exportList.map(item => ({
+        "Nama": item.data.nama, 
+        "Kelas": item.data.kelas, 
+        "NISN": item.data.nisn,
+        "Adab": item.data.adab, 
+        "Tahfidz": item.data.tahfidz, 
+        "Rapot": item.data.rapot,
+        "Nilai Kehadiran": item.data.kehadiran || 0, // Tambahan kategori baru
+        "Rata-rata": Number(item.avg.toFixed(2)), 
+        "Status": item.lG ? "LAYAK" : "TIDAK"
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+    XLSX.writeFile(wb, `Export_Beasiswa_${new Date().toLocaleDateString()}.xlsx`);
+};
+
+
+window.hapusSiswa = async (id) => {
+    if(confirm("Hapus data ini secara permanen?")) { await deleteDoc(doc(db, "siswa", id)); }
+};
+
+
+    window.bukaEditNilai = (id) => {
+        const s = dataSiswa.find(x => x.id === id).data;
+        document.getElementById('editNilaiId').value = id;
+        document.getElementById('valAdab').value = s.adab || 0;
+        document.getElementById('valTahfidz').value = s.tahfidz || 0;
+        document.getElementById('valRapot').value = s.rapot || 0;
+        nilaiModal.show();
+    };
+
+    window.prosesUpdateNilai = async () => {
+        const id = document.getElementById('editNilaiId').value;
+        await updateDoc(doc(db, "siswa", id), {
+            adab: Number(document.getElementById('valAdab').value),
+            tahfidz: Number(document.getElementById('valTahfidz').value),
+            rapot: Number(document.getElementById('valRapot').value)
+        });
+        nilaiModal.hide();
+    };
+
+    window.toggleSelectAll = (el) => {
+        document.querySelectorAll('.chk-siswa').forEach(c => c.checked = el.checked);
+        updateSelectedCount();
+    };
+
+    window.updateSelectedCount = () => {
+        const count = document.querySelectorAll('.chk-siswa:checked').length;
+        document.getElementById('btnHapusMassal').style.display = count > 0 ? 'inline-block' : 'none';
+        document.getElementById('countTerpilih').innerText = count;
+    };
+
+    window.hapusMassalSiswa = async () => {
+        const ids = Array.from(document.querySelectorAll('.chk-siswa:checked')).map(c => c.value);
+        if(confirm(`Hapus ${ids.length} santri terpilih?`)) {
+            const batch = writeBatch(db);
+            ids.forEach(id => batch.delete(doc(db, "siswa", id)));
+            await batch.commit();
+            document.getElementById('selectAll').checked = false;
+            updateSelectedCount();
+        }
+    };
+</script>
+</body>
+</html>
