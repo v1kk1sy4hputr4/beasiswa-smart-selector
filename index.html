@@ -588,20 +588,32 @@ window.renderMonitoring = () => {
         alert("Santri berhasil ditambahkan.");
     };
 
+
     // --- FITUR RESET NILAI TAMPIL ---
+window.smartResetNilai = async () => {
+    if (!confirm("Apakah Anda yakin ingin mereset semua nilai tampil (Adab, Tahfidz, Rapot, dan Absen) menjadi 0?")) return;
 
-    window.smartResetNilai = async () => {
-        const target = window.currentFilteredData || [];
-        if(target.length === 0) return alert("Tidak ada data yang tampil untuk direset!");
-        if(!confirm(`Reset nilai Adab, Tahfidz, dan Rapot untuk ${target.length} santri yang tampil?`)) return;
-
+    try {
         const batch = writeBatch(db);
-        target.forEach(item => {
-            batch.update(doc(db, "siswa", item.id), { adab: 0, tahfidz: 0, rapot: 0 });
+        
+        dataSiswa.forEach(item => {
+            const sfRef = doc(db, "siswa", item.id);
+            batch.update(sfRef, {
+                adab: 0,
+                tahfidz: 0,
+                rapot: 0,
+                kehadiran: 0 // <-- Bagian ini yang wajib ditambahkan agar nilai absen ikut terhapus
+            });
         });
+
         await batch.commit();
-        alert("Nilai pada tabel monitoring berhasil direset ke 0.");
-    };
+        alert("Semua nilai berhasil di-reset ke 0!");
+    } catch (error) {
+        console.error("Gagal mereset nilai: ", error);
+        alert("Terjadi kesalahan saat mereset nilai.");
+    }
+};
+
 
     // --- FUNGSI PENDUKUNG LAINNYA ---
 
