@@ -69,33 +69,33 @@
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-monitoring">
-            <div class="row g-2 mb-3">
-                <div class="col-6 col-md-3">
-                    <div id="card-global" class="card p-2 text-center stat-card bg-warning" onclick="setFilter('global')">
-                        <div class="small-text fw-bold">LAYAK</div><h4 class="mb-0 fw-bold" id="countGlobal">0</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div id="card-adab" class="card p-2 text-center stat-card bg-success" onclick="setFilter('adab')">
-                        <div class="small-text fw-bold">ADAB</div><h4 class="mb-0 fw-bold" id="countAdab">0</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div id="card-tahfidz" class="card p-2 text-center stat-card bg-primary" onclick="setFilter('tahfidz')">
-                        <div class="small-text fw-bold">TAHFIDZ</div><h4 class="mb-0 fw-bold" id="countTahfidz">0</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div id="card-rapot" class="card p-2 text-center stat-card bg-info" onclick="setFilter('rapot')">
-                        <div class="small-text fw-bold">RAPOT</div><h4 class="mb-0 fw-bold" id="countRapot">0</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md-2">
-                    <div id="card-kehadiran" class="card p-2 text-center stat-card bg-secondary text-white" onclick="setFilter('kehadiran')">
-                        <div class="small-text fw-bold text-white">KEHADIRAN</div><h4 class="mb-0 fw-bold" id="countKehadiran">0</h4>
-                    </div>
-                </div>
-            </div>
+<div class="row g-2 mb-3 row-cols-2 row-cols-md-5">
+    <div class="col">
+        <div id="card-global" class="card p-2 text-center stat-card bg-warning" onclick="setFilter('global')">
+            <div class="small-text fw-bold">LAYAK</div><h4 class="mb-0 fw-bold" id="countGlobal">0</h4>
+        </div>
+    </div>
+    <div class="col">
+        <div id="card-adab" class="card p-2 text-center stat-card bg-success" onclick="setFilter('adab')">
+            <div class="small-text fw-bold">ADAB</div><h4 class="mb-0 fw-bold" id="countAdab">0</h4>
+        </div>
+    </div>
+    <div class="col">
+        <div id="card-tahfidz" class="card p-2 text-center stat-card bg-primary" onclick="setFilter('tahfidz')">
+            <div class="small-text fw-bold">TAHFIDZ</div><h4 class="mb-0 fw-bold" id="countTahfidz">0</h4>
+        </div>
+    </div>
+    <div class="col">
+        <div id="card-rapot" class="card p-2 text-center stat-card bg-info" onclick="setFilter('rapot')">
+            <div class="small-text fw-bold">RAPOT</div><h4 class="mb-0 fw-bold" id="countRapot">0</h4>
+        </div>
+    </div>
+    <div class="col">
+        <div id="card-kehadiran" class="card p-2 text-center stat-card bg-secondary text-white" onclick="setFilter('kehadiran')">
+            <div class="small-text fw-bold text-white">KEHADIRAN</div><h4 class="mb-0 fw-bold" id="countKehadiran">0</h4>
+        </div>
+    </div>
+</div>
 
             <div class="row">
                 <div class="col-lg-4">
@@ -128,6 +128,9 @@
     <button class="btn btn-success btn-sm w-100 mb-2" onclick="exportDataExcel()"><i class="bi bi-file-excel"></i> Export Excel (Sesuai Filter)</button>
     <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="triggerImportNilai()"><i class="bi bi-upload"></i> Import Nilai Excel</button>
     <button class="btn btn-outline-danger btn-sm w-100" onclick="smartResetNilai()"><i class="bi bi-trash"></i> Reset Nilai Tampil</button>
+    <button class="btn btn-primary btn-sm w-100 mb-2" style="background-color: #25D366; border-color: #25D366;" onclick="generateWhatsAppMessage()">
+        <i class="bi bi-whatsapp"></i> Bagikan Laporan ke WA
+    </button>
     <input type="file" id="importFileNilai" hidden accept=".xlsx, .xls" onchange="handleFileSelect(event, 'nilai')">
 </div>
                 </div>
@@ -375,6 +378,125 @@ window.logout = () => {
     let sortDaftarConfig = { key: 'nama', direction: 'asc' };
     let tempWorkbook = null;
     let currentImportType = ''; 
+
+
+
+window.generateWhatsAppMessage = () => {
+    if (!dataSiswa || dataSiswa.length === 0) {
+        alert("Tidak ada data santri untuk dibuatkan pesan!");
+        return;
+    }
+
+    // 1. Inisialisasi struktur penampung kategori
+    let kategori = {
+        layakSemua: [],
+        hanyaAdab: [],
+        hanyaTahfidz: [],
+        hanyaRapot: [],
+        hanyaKehadiran: []
+    };
+
+    // 2. Filter data berdasarkan kelas yang sedang dipilih di Dashboard
+    let filteredSiswa = dataSiswa.filter(item => {
+        return filterKelas === 'all' || item.data.kelas === filterKelas;
+    });
+
+    // 3. Proses kalkulasi dan klasifikasi yang sinkron dengan sistem dashboard
+    filteredSiswa.forEach(item => {
+        const s = item.data;
+        const adab = Number(s.adab || 0);
+        const tahfidz = Number(s.tahfidz || 0);
+        const rapot = Number(s.rapot || 0);
+        const kehadiran = Number(s.kehadiran || 0);
+        
+        // Rumus Rata-rata tetap dihitung untuk kategori LAYAK
+        const avg = ((adab * bobot.adab) + (tahfidz * bobot.tahfidz) + (rapot * bobot.rapot) + (kehadiran * bobot.kehadiran)) / 100;
+        
+        // Kondisi kelulusan per aspek
+        const lA = adab >= kriteria.adab;
+        const lT = tahfidz >= kriteria.tahfidz;
+        const lR = rapot >= kriteria.rapot;
+        const lK = kehadiran >= kriteria.kehadiran;
+        
+        // Status LAYAK Global
+        const lG = lA && lT && lR && lK; 
+
+        // Klasifikasi data dengan menampilkan nilai kategori masing-masing
+        if (lG) {
+            const infoSantri = `• *${s.nama}* (${s.kelas}) - Rata²: ${avg.toFixed(2)}`;
+            kategori.layakSemua.push(infoSantri);
+        } else {
+            // Menampilkan nilai spesifik masing-masing kategori kualifikasi
+            if (lA) {
+                kategori.hanyaAdab.push(`• *${s.nama}* (${s.kelas}) - Nilai Adab: ${adab}`);
+            }
+            if (lT) {
+                kategori.hanyaTahfidz.push(`• *${s.nama}* (${s.kelas}) - Nilai Tahf: ${tahfidz}`);
+            }
+            if (lR) {
+                kategori.hanyaRapot.push(`• *${s.nama}* (${s.kelas}) - Nilai Rapot: ${rapot}`);
+            }
+            if (lK) {
+                kategori.hanyaKehadiran.push(`• *${s.nama}* (${s.kelas}) - Absen: ${kehadiran}%`);
+            }
+        }
+    });
+
+    // 4. Menyusun Template Pesan WA yang Formal, Akurat, & Estetik
+    let infoKelas = filterKelas === 'all' ? 'Semua Kelas' : `Kelas ${filterKelas}`;
+    
+    let pesan = `*LAPORAN HASIL MONITORING SELEKSI BEASISWA SANTRI*\n`;
+    pesan += `*Sistem Beasiswa Pro – Filter: ${infoKelas}*\n`;
+    pesan += `───────────────────────────\n\n`;
+    pesan += `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\n`;
+    pesan += `Yth. Pimpinan dan Segenap Dewan Asatidzah,\n`;
+    pesan += `Berikut kami sampaikan rincian hasil verifikasi kualifikasi santri berdasarkan kriteria aktual yang sedang diterapkan pada sistem:\n\n`;
+
+    pesan += `◼️ *1. KATEGORI UTAMA: LAYAK SELEKSI (MEMENUHI SELURUH KRITERIA)*\n`;
+    pesan += `_Total: ${kategori.layakSemua.length} Santri_\n`;
+    pesan += kategori.layakSemua.length > 0 ? kategori.layakSemua.join('\n') : `_Tidak ada santri_`;
+    pesan += `\n\n───────────────────────────\n`;
+    pesan += `*KATEGORI CAPAIAN ASPEK (BELUM LOLOS SELEKSI GLOBAL):*\n\n`;
+
+    pesan += `🟩 *2. MEMENUHI ASPEK ADAB*\n`;
+    pesan += `_Total: ${kategori.hanyaAdab.length} Santri_\n`;
+    pesan += kategori.hanyaAdab.length > 0 ? kategori.hanyaAdab.join('\n') : `_Tidak ada santri_`;
+    pesan += `\n\n`;
+
+    pesan += `🟦 *3. MEMENUHI ASPEK TAHFIDZ*\n`;
+    pesan += `_Total: ${kategori.hanyaTahfidz.length} Santri_\n`;
+    pesan += kategori.hanyaTahfidz.length > 0 ? kategori.hanyaTahfidz.join('\n') : `_Tidak ada santri_`;
+    pesan += `\n\n`;
+
+    pesan += `🟨 *4. MEMENUHI ASPEK RAPOT*\n`;
+    pesan += `_Total: ${kategori.hanyaRapot.length} Santri_\n`;
+    pesan += kategori.hanyaRapot.length > 0 ? kategori.hanyaRapot.join('\n') : `_Tidak ada santri_`;
+    pesan += `\n\n`;
+
+    pesan += `⬛ *5. MEMENUHI ASPEK KEHADIRAN (ABSEN)*\n`;
+    pesan += `_Total: ${kategori.hanyaKehadiran.length} Santri_\n`;
+    pesan += kategori.hanyaKehadiran.length > 0 ? kategori.hanyaKehadiran.join('\n') : `_Tidak ada santri_`;
+    pesan += `\n\n───────────────────────────\n\n`;
+
+    pesan += `*Catatan Parameter Batas Kelulusan Aktif:* Byzantium\n`;
+    pesan += `• Min. Adab: ${kriteria.adab} | Tahf: ${kriteria.tahfidz} | Rapot: ${kriteria.rapot} | Absen: ${kriteria.kehadiran}%\n`;
+    pesan += `• Bobot Nilai: Adab ${bobot.adab}%, Tahf ${bobot.tahfidz}%, Rapot ${bobot.rapot}%, Absen ${bobot.kehadiran}%\n\n`;
+    pesan += `Demikian laporan berkala ini kami sampaikan untuk menjadi dasar pijakan evaluasi bersama. Atas perhatian Asatidzah, kami haturkan jazaakumullahu khairan.\n\n`;
+    pesan += `Wassalamu'alaikum Warahmatullahi Wabarakatuh.`;
+
+    // 5. Otomatisasi Salin Ke Clipboard & Buka WhatsApp Chat URL
+    navigator.clipboard.writeText(pesan).then(() => {
+        alert("Pesan formal berhasil disalin ke clipboard! Sistem akan mengarahkan Anda ke WhatsApp.");
+        const urlWa = `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`;
+        window.open(urlWa, '_blank');
+    }).catch(err => {
+        console.error("Gagal menyalin teks: ", err);
+        const urlWa = `https://api.whatsapp.com/send?text=${encodeURIComponent(pesan)}`;
+        window.open(urlWa, '_blank');
+    });
+};
+
+
 
     const editModal = new bootstrap.Modal(document.getElementById('modalEdit'));
     const nilaiModal = new bootstrap.Modal(document.getElementById('modalEditNilai'));
